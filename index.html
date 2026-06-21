@@ -1,0 +1,998 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0f7b6c">
+<title>近所SNSアシスタント | EASY HOUSE</title>
+<style>
+  :root{
+    --bg:#f5f3ee;
+    --card:#ffffff;
+    --ink:#1f2421;
+    --sub:#6b7770;
+    --line:#e2ded5;
+    --brand:#0f7b6c;
+    --brand-d:#0a5a4f;
+    --ig:#c13584;
+    --fb:#1877f2;
+    --x:#111;
+    --warn:#b4541c;
+    --danger:#c0392b;
+    --radius:16px;
+    --tab-h:64px;
+    --safe-b:env(safe-area-inset-bottom,0px);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP",system-ui,sans-serif;
+    background:var(--bg);
+    color:var(--ink);
+    font-size:16px;
+    line-height:1.6;
+    -webkit-text-size-adjust:100%;
+  }
+  /* ===== layout ===== */
+  .app{max-width:560px;margin:0 auto;min-height:100vh;}
+  header.bar{
+    position:sticky;top:0;z-index:20;
+    background:var(--brand);
+    color:#fff;
+    padding:calc(env(safe-area-inset-top,0px) + 12px) 16px 12px;
+    display:flex;align-items:center;gap:10px;
+  }
+  header.bar .logo{font-weight:800;font-size:18px;letter-spacing:.02em;}
+  header.bar .tag{font-size:11px;opacity:.85;margin-left:auto;text-align:right;line-height:1.3;}
+  main{padding:14px 14px calc(var(--tab-h) + var(--safe-b) + 24px);}
+  .view{display:none;animation:fade .2s ease;}
+  .view.active{display:block;}
+  @keyframes fade{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:none;}}
+
+  /* ===== tabs ===== */
+  nav.tabs{
+    position:fixed;left:0;right:0;bottom:0;z-index:30;
+    height:calc(var(--tab-h) + var(--safe-b));
+    padding-bottom:var(--safe-b);
+    background:#fff;border-top:1px solid var(--line);
+    display:flex;
+    max-width:560px;margin:0 auto;
+    box-shadow:0 -2px 12px rgba(0,0,0,.04);
+  }
+  nav.tabs button{
+    flex:1;border:0;background:none;color:var(--sub);
+    font-size:11px;font-weight:600;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+    cursor:pointer;padding:6px 0;
+  }
+  nav.tabs button .ic{font-size:21px;line-height:1;}
+  nav.tabs button.active{color:var(--brand);}
+
+  /* ===== cards / form ===== */
+  .card{
+    background:var(--card);border:1px solid var(--line);
+    border-radius:var(--radius);padding:16px;margin-bottom:14px;
+  }
+  h2.sec{font-size:15px;margin:2px 0 12px;display:flex;align-items:center;gap:7px;}
+  h2.sec .dot{width:8px;height:8px;border-radius:50%;background:var(--brand);}
+  label.fld{display:block;font-size:13px;font-weight:700;color:var(--ink);margin:14px 0 6px;}
+  label.fld:first-child{margin-top:0;}
+  .hint{font-size:12px;color:var(--sub);margin:4px 0 0;}
+  textarea,input[type=text],input[type=password],select{
+    width:100%;border:1px solid var(--line);border-radius:12px;
+    padding:12px;font-size:16px;font-family:inherit;color:var(--ink);
+    background:#fcfbf8;outline:none;
+  }
+  textarea:focus,input:focus,select:focus{border-color:var(--brand);background:#fff;}
+  textarea{resize:vertical;min-height:96px;line-height:1.6;}
+  .row{display:flex;gap:8px;flex-wrap:wrap;}
+
+  /* ===== chips ===== */
+  .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;}
+  .chip{
+    border:1.5px solid var(--line);background:#fff;border-radius:999px;
+    padding:8px 14px;font-size:14px;font-weight:600;color:var(--sub);cursor:pointer;
+  }
+  .chip.on{border-color:var(--brand);background:var(--brand);color:#fff;}
+
+  /* ===== targets toggle ===== */
+  .targets{display:flex;gap:10px;margin-top:6px;}
+  .tg{
+    flex:1;border:1.5px solid var(--line);border-radius:12px;padding:11px;
+    text-align:center;font-weight:700;font-size:14px;cursor:pointer;background:#fff;color:var(--sub);
+    display:flex;align-items:center;justify-content:center;gap:7px;
+  }
+  .tg .b{width:10px;height:10px;border-radius:50%;background:var(--line);}
+  .tg.on{color:#fff;}
+  .tg.ig.on{background:var(--ig);border-color:var(--ig);}
+  .tg.fb.on{background:var(--fb);border-color:var(--fb);}
+  .tg.on .b{background:#fff;}
+
+  /* ===== buttons ===== */
+  button.primary{
+    width:100%;border:0;border-radius:14px;background:var(--brand);color:#fff;
+    font-size:16px;font-weight:800;padding:15px;cursor:pointer;margin-top:16px;
+    box-shadow:0 3px 0 var(--brand-d);
+  }
+  button.primary:active{transform:translateY(2px);box-shadow:0 1px 0 var(--brand-d);}
+  button.primary[disabled]{opacity:.5;box-shadow:none;}
+  button.ghost{
+    border:1.5px solid var(--brand);background:#fff;color:var(--brand);
+    border-radius:12px;font-weight:700;padding:11px 14px;cursor:pointer;font-size:14px;
+  }
+  button.mini{
+    border:1px solid var(--line);background:#fff;color:var(--ink);
+    border-radius:9px;font-weight:700;padding:7px 12px;cursor:pointer;font-size:13px;
+  }
+  button.mini.copy{border-color:var(--brand);color:var(--brand);}
+  button.danger{
+    width:100%;border:1.5px solid var(--danger);background:#fff;color:var(--danger);
+    border-radius:12px;font-weight:700;padding:12px;cursor:pointer;margin-top:6px;
+  }
+
+  /* ===== generated draft cards ===== */
+  .draft{border-radius:var(--radius);border:1px solid var(--line);margin-bottom:14px;overflow:hidden;background:#fff;}
+  .draft .head{padding:11px 14px;display:flex;align-items:center;gap:8px;color:#fff;font-weight:800;font-size:14px;}
+  .draft.ig .head{background:linear-gradient(90deg,#f09433,#dc2743,#bc1888);}
+  .draft.fb .head{background:var(--fb);}
+  .draft.x  .head{background:var(--x);}
+  .draft .head .meta{margin-left:auto;font-size:11px;font-weight:600;opacity:.9;}
+  .draft .body{padding:14px;}
+  .draft .text{white-space:pre-wrap;word-break:break-word;font-size:15px;line-height:1.7;}
+  .draft .tags{margin-top:10px;color:var(--brand-d);font-size:14px;word-break:break-word;}
+  .draft .acts{display:flex;gap:8px;margin-top:13px;flex-wrap:wrap;}
+
+  /* ===== preview thumbs ===== */
+  .thumbs{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
+  .thumb{position:relative;width:72px;height:72px;border-radius:10px;overflow:hidden;border:1px solid var(--line);}
+  .thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+  .thumb .rm{position:absolute;top:2px;right:2px;background:rgba(0,0,0,.6);color:#fff;border:0;border-radius:50%;width:20px;height:20px;font-size:13px;cursor:pointer;line-height:20px;padding:0;}
+
+  /* ===== history ===== */
+  .hist{border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px;background:#fff;}
+  .hist .top{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--sub);margin-bottom:6px;}
+  .badge{font-size:11px;font-weight:800;padding:2px 8px;border-radius:999px;color:#fff;}
+  .badge.ig{background:var(--ig);} .badge.fb{background:var(--fb);} .badge.x{background:var(--x);}
+  .hist .type{font-weight:700;color:var(--ink);}
+  .hist .txt{font-size:14px;white-space:pre-wrap;word-break:break-word;max-height:5.4em;overflow:hidden;position:relative;}
+  .hist .txt.open{max-height:none;}
+  .hist .acts{display:flex;gap:8px;margin-top:9px;flex-wrap:wrap;}
+  .react{display:flex;gap:6px;margin-top:8px;}
+  .react button{border:1px solid var(--line);background:#fff;border-radius:8px;padding:5px 9px;font-size:14px;cursor:pointer;}
+  .react button.on{border-color:var(--brand);background:#e8f4f1;}
+
+  /* ===== stats ===== */
+  table.stat{width:100%;border-collapse:collapse;font-size:14px;}
+  table.stat td{padding:6px 4px;border-bottom:1px solid var(--line);}
+  table.stat td.k{color:var(--sub);} table.stat td.v{text-align:right;font-weight:700;}
+  .bar{height:8px;border-radius:5px;background:var(--brand);}
+  .barwrap{background:var(--line);border-radius:5px;overflow:hidden;flex:1;}
+
+  /* ===== advice ===== */
+  .tip{border-left:3px solid var(--brand);padding:4px 0 4px 12px;margin:12px 0;}
+  .tip b{display:block;font-size:14px;}
+  .tip span{font-size:13px;color:var(--sub);}
+
+  /* ===== misc ===== */
+  .switch{display:flex;align-items:center;gap:10px;justify-content:space-between;}
+  .toggle{position:relative;width:50px;height:30px;flex:none;}
+  .toggle input{opacity:0;width:100%;height:100%;margin:0;cursor:pointer;}
+  .toggle .sl{position:absolute;inset:0;background:var(--line);border-radius:999px;transition:.2s;}
+  .toggle .sl:before{content:"";position:absolute;width:24px;height:24px;border-radius:50%;background:#fff;top:3px;left:3px;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.3);}
+  .toggle input:checked + .sl{background:var(--brand);}
+  .toggle input:checked + .sl:before{transform:translateX(20px);}
+  .note{background:#fff7ec;border:1px solid #f0dcc0;color:var(--warn);border-radius:12px;padding:11px 13px;font-size:12.5px;line-height:1.6;}
+  .note.sec{background:#eef6ff;border-color:#cfe2fb;color:#1c4e80;}
+  .empty{text-align:center;color:var(--sub);padding:34px 12px;font-size:14px;}
+  .empty .big{font-size:34px;display:block;margin-bottom:8px;}
+  .spin{display:inline-block;width:15px;height:15px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:sp .7s linear infinite;vertical-align:-2px;}
+  @keyframes sp{to{transform:rotate(360deg);}}
+  .toast{
+    position:fixed;left:50%;bottom:calc(var(--tab-h) + var(--safe-b) + 16px);transform:translateX(-50%);
+    background:#1f2421;color:#fff;padding:10px 18px;border-radius:999px;font-size:13px;font-weight:600;
+    z-index:50;opacity:0;pointer-events:none;transition:opacity .2s;white-space:nowrap;
+  }
+  .toast.show{opacity:.96;}
+  .small{font-size:12px;color:var(--sub);}
+  .kv{display:flex;gap:6px;align-items:center;margin-top:8px;}
+  .danger-link{color:var(--danger);text-decoration:underline;cursor:pointer;font-size:13px;}
+  details.adv summary{cursor:pointer;font-weight:700;font-size:14px;color:var(--brand-d);padding:4px 0;}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="bar">
+    <span class="logo">近所SNSアシスタント</span>
+    <span class="tag">EASY HOUSE合同会社<br>呉市・黒瀬｜エアコン/残置物/空き家</span>
+  </header>
+
+  <main>
+    <!-- ============ 1. 作成 ============ -->
+    <section id="view-create" class="view active">
+      <div class="card">
+        <h2 class="sec"><span class="dot"></span>下書きを作る</h2>
+
+        <label class="fld">写真の説明 / 今日のトピック</label>
+        <textarea id="topic" placeholder="例：黒瀬町のお宅で2.8kwのエアコンを取付。配管カバーもきれいに仕上げました。猛暑前で予約混み合ってます。"></textarea>
+
+        <label class="fld">写真を添付（プレビューのみ・送信しません）</label>
+        <input type="file" id="photo" accept="image/*" multiple style="font-size:13px;">
+        <div class="thumbs" id="thumbs"></div>
+
+        <label class="fld">投稿タイプ</label>
+        <div class="chips" id="typeChips"></div>
+
+        <label class="fld">投稿する媒体</label>
+        <div class="targets" id="targets"></div>
+
+        <button class="primary" id="genBtn">下書きを生成</button>
+        <p class="hint" id="genHint"></p>
+      </div>
+
+      <div id="drafts"></div>
+    </section>
+
+    <!-- ============ 2. 履歴・傾向 ============ -->
+    <section id="view-history" class="view">
+      <div class="card">
+        <h2 class="sec"><span class="dot"></span>傾向サマリー</h2>
+        <div id="summary"></div>
+      </div>
+
+      <div class="card">
+        <h2 class="sec"><span class="dot"></span>過去キャプションから学習</h2>
+        <p class="hint">過去のIG/FB投稿の本文をまとめて貼り付け → 文体・語彙・ハッシュタグを抽出して保存。以後の生成に反映します。</p>
+        <textarea id="learnBox" placeholder="ここに過去の投稿キャプションを何件でも貼り付け（改行区切りでOK）"></textarea>
+        <button class="ghost" id="learnBtn" style="margin-top:10px;">学習して反映</button>
+        <div id="learnedView" class="small" style="margin-top:10px;"></div>
+      </div>
+
+      <div class="card">
+        <h2 class="sec"><span class="dot"></span>投稿履歴</h2>
+        <div id="histList"></div>
+      </div>
+    </section>
+
+    <!-- ============ 3. 助言 ============ -->
+    <section id="view-advice" class="view">
+      <div class="card">
+        <div class="switch">
+          <div>
+            <h2 class="sec" style="margin:0;"><span class="dot"></span>今のトレンドを反映</h2>
+            <p class="hint" style="margin-top:4px;">ONで季節・呉/広島・業種の旬の話題を取り込み（web_search使用）。OFFは定番のみ。</p>
+          </div>
+          <label class="toggle"><input type="checkbox" id="trendToggle"><span class="sl"></span></label>
+        </div>
+        <button class="primary" id="adviceBtn">伸びる投稿の助言をもらう</button>
+        <p class="hint" id="adviceHint"></p>
+      </div>
+      <div id="adviceOut"></div>
+
+      <div class="card">
+        <h2 class="sec"><span class="dot"></span>定番の型（オフライン）</h2>
+        <div id="staticTips"></div>
+      </div>
+    </section>
+
+    <!-- ============ 4. 設定 ============ -->
+    <section id="view-settings" class="view">
+      <div class="card">
+        <h2 class="sec"><span class="dot"></span>Anthropic APIキー</h2>
+        <div class="note sec" style="margin-bottom:10px;">
+          🔒 キーは<b>この端末のlocalStorageのみ</b>に保存。コードやGitHubには絶対に保存されません。誰にも送信されません（送信先はAnthropic APIのみ）。<br>
+          Anthropicコンソールで<b>利用上限を低め</b>に設定することを推奨します。
+        </div>
+        <label class="fld">APIキー（sk-ant-...）</label>
+        <input type="password" id="apiKey" placeholder="sk-ant-api03-...">
+        <div class="row" style="margin-top:10px;">
+          <button class="mini" id="saveKey">保存</button>
+          <button class="mini" id="showKey">表示/非表示</button>
+          <button class="mini" id="clearKey">キー削除</button>
+        </div>
+        <p class="hint" id="keyState"></p>
+      </div>
+
+      <div class="card">
+        <h2 class="sec"><span class="dot"></span>ハッシュタグセット</h2>
+        <p class="hint">Instagram用（末尾にまとめて付きます）。スペース/改行/#区切りどれでもOK。</p>
+        <textarea id="hashIg" placeholder="#黒瀬 #呉 #広島 #エアコン取付 #空き家"></textarea>
+        <p class="hint" style="margin-top:12px;">Facebook用（控えめ。1〜3個推奨）。</p>
+        <textarea id="hashFb" placeholder="#呉市 #黒瀬"></textarea>
+      </div>
+
+      <div class="card">
+        <h2 class="sec"><span class="dot"></span>トーン・署名・店舗情報</h2>
+        <label class="fld">店舗・連絡先（FBの末尾などに使用）</label>
+        <textarea id="shopInfo" placeholder="EASY HOUSE合同会社 / 広島県呉市黒瀬周辺 / エアコン取付・残置物撤去・空き家買取 / お問い合わせはDMまたはお電話で"></textarea>
+        <label class="fld">トーンの指定（任意）</label>
+        <input type="text" id="tone" placeholder="例：親しみやすく、誠実に。専門用語は控えめ。">
+        <label class="fld">署名（任意・各投稿末尾）</label>
+        <input type="text" id="sign" placeholder="例：— EASY HOUSE 吉原">
+      </div>
+
+      <div class="card">
+        <h2 class="sec"><span class="dot"></span>投稿タイプの編集</h2>
+        <p class="hint">カンマ区切り。作成画面の選択肢になります。</p>
+        <input type="text" id="typesEdit" placeholder="施工事例,お知らせ,日常,キャンペーン,募集">
+        <button class="ghost" id="saveTypes" style="margin-top:10px;">タイプを保存</button>
+      </div>
+
+      <div class="card">
+        <h2 class="sec"><span class="dot"></span>使用モデル</h2>
+        <input type="text" id="modelName" placeholder="claude-sonnet-4-6">
+        <p class="hint">既定: claude-sonnet-4-6（最新Sonnet）。</p>
+      </div>
+
+      <div class="card">
+        <h2 class="sec"><span class="dot"></span>データ管理</h2>
+        <p class="hint">すべての履歴・設定・学習メモ・APIキーを端末から削除します。元に戻せません。</p>
+        <button class="danger" id="resetAll">すべてリセット（全消去）</button>
+      </div>
+      <p class="small" style="text-align:center;">v1.0 ｜ フェーズ1（近所向け：Instagram / Facebook）</p>
+    </section>
+  </main>
+
+  <nav class="tabs">
+    <button data-view="create" class="active"><span class="ic">✏️</span>作成</button>
+    <button data-view="history"><span class="ic">📊</span>履歴・傾向</button>
+    <button data-view="advice"><span class="ic">💡</span>助言</button>
+    <button data-view="settings"><span class="ic">⚙️</span>設定</button>
+  </nav>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+
+/* ============================================================
+   設定: 媒体はデータ駆動。後から X を1行追加できる構造。
+   ============================================================ */
+const CHANNELS = {
+  ig: {
+    id:"ig", name:"Instagram", handle:"@tbsa112", badge:"ig", enabledByDefault:true,
+    audience:"近所の人・地元の見込み客（Instagramを見る層）",
+    styleRule:"カジュアルで一人称。絵文字を多めに使い、親しみやすく。短め〜中くらいの長さ。改行で読みやすく。ローカルなハッシュタグは本文末尾にまとめて配置する。",
+    hashKey:"hashIg", hashDefault:"#黒瀬 #呉 #広島 #くれ #黒瀬町 #東広島 #エアコン取付 #残置物撤去 #空き家 #地域密着"
+  },
+  fb: {
+    id:"fb", name:"Facebook", handle:"", badge:"fb", enabledByDefault:true,
+    audience:"近所のコミュニティ・地域の知人（Facebookを見る層）",
+    styleRule:"やや説明的で人柄と地域密着が伝わる文体。落ち着いた丁寧語。ハッシュタグは控えめ（1〜3個）。一言あいさつや連絡先を入れやすく、信頼感重視。",
+    hashKey:"hashFb", hashDefault:"#呉市 #黒瀬"
+  }
+  /* --- 将来追加（設計のみ・今は無効） ---
+  x: {
+    id:"x", name:"X", handle:"", badge:"x", enabledByDefault:false,
+    audience:"大家・不動産オーナー（物件リード獲得）",
+    styleRule:"簡潔。1〜2文＋要点。物件/空き家オーナー向けの価値提案。ハッシュタグ最小限。",
+    hashKey:"hashX", hashDefault:"#空き家 #不動産 #呉市"
+  }
+  */
+};
+const ACTIVE_CHANNELS = Object.values(CHANNELS).filter(c => c.enabledByDefault);
+
+const DEFAULT_TYPES = ["施工事例","お知らせ","日常","キャンペーン","募集"];
+const DEFAULT_MODEL = "claude-sonnet-4-6";
+const ANTHROPIC_VERSION = "2023-06-01";
+const LS = "neighborSnsAssistant.v1";
+
+/* ============================================================
+   状態 / 永続化
+   ============================================================ */
+const store = {
+  data: load(),
+  save(){ localStorage.setItem(LS, JSON.stringify(this.data)); }
+};
+function load(){
+  let d = {};
+  try { d = JSON.parse(localStorage.getItem(LS) || "{}"); } catch(e){ d = {}; }
+  d.history   = d.history   || [];   // {id,date,channel,type,text,tags,react}
+  d.settings  = d.settings  || {};
+  d.learned   = d.learned   || null; // {phrases,vocab,hashtags,sampleCount}
+  return d;
+}
+const S = () => store.data.settings;
+function setting(k, def){ const v = S()[k]; return (v===undefined||v===null) ? def : v; }
+
+/* ============================================================
+   UI helpers
+   ============================================================ */
+const $  = sel => document.querySelector(sel);
+const $$ = sel => Array.from(document.querySelectorAll(sel));
+const esc = s => (s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+let toastT;
+function toast(msg){
+  const t = $("#toast"); t.textContent = msg; t.classList.add("show");
+  clearTimeout(toastT); toastT = setTimeout(()=>t.classList.remove("show"), 1700);
+}
+async function copyText(text){
+  try{
+    await navigator.clipboard.writeText(text);
+    toast("コピーしました");
+  }catch(e){
+    // フォールバック（古いSafari / 非セキュア）
+    const ta=document.createElement("textarea");
+    ta.value=text; ta.style.position="fixed"; ta.style.opacity="0";
+    document.body.appendChild(ta); ta.focus(); ta.select();
+    try{ document.execCommand("copy"); toast("コピーしました"); }
+    catch(_){ toast("コピー失敗。長押しで選択してください"); }
+    document.body.removeChild(ta);
+  }
+}
+
+/* ============================================================
+   タブ切替
+   ============================================================ */
+$$("nav.tabs button").forEach(b=>{
+  b.addEventListener("click", ()=>{
+    $$("nav.tabs button").forEach(x=>x.classList.remove("active"));
+    $$(".view").forEach(v=>v.classList.remove("active"));
+    b.classList.add("active");
+    $("#view-"+b.dataset.view).classList.add("active");
+    if(b.dataset.view==="history"){ renderSummary(); renderHistory(); renderLearned(); }
+    window.scrollTo(0,0);
+  });
+});
+
+/* ============================================================
+   作成画面: タイプチップ・媒体トグル・写真
+   ============================================================ */
+let selectedType = null;
+let selectedChannels = new Set(ACTIVE_CHANNELS.map(c=>c.id));
+let photoData = []; // dataURL[]
+
+function getTypes(){
+  const raw = setting("types", DEFAULT_TYPES.join(","));
+  return raw.split(",").map(s=>s.trim()).filter(Boolean);
+}
+function renderTypeChips(){
+  const types = getTypes();
+  if(!selectedType || !types.includes(selectedType)) selectedType = types[0];
+  $("#typeChips").innerHTML = types.map(t =>
+    `<button class="chip ${t===selectedType?'on':''}" data-t="${esc(t)}">${esc(t)}</button>`).join("");
+  $$("#typeChips .chip").forEach(c=>c.addEventListener("click",()=>{
+    selectedType = c.dataset.t; renderTypeChips();
+  }));
+}
+function renderTargets(){
+  $("#targets").innerHTML = ACTIVE_CHANNELS.map(c=>{
+    const on = selectedChannels.has(c.id);
+    return `<div class="tg ${c.id} ${on?'on':''}" data-c="${c.id}">
+        <span class="b"></span>${esc(c.name)}${c.handle?`<span style="font-size:11px;opacity:.85;">${esc(c.handle)}</span>`:""}
+      </div>`;
+  }).join("");
+  $$("#targets .tg").forEach(el=>el.addEventListener("click",()=>{
+    const id = el.dataset.c;
+    if(selectedChannels.has(id)){
+      if(selectedChannels.size>1) selectedChannels.delete(id);
+    } else selectedChannels.add(id);
+    renderTargets();
+  }));
+}
+$("#photo").addEventListener("change", e=>{
+  const files = Array.from(e.target.files||[]);
+  files.forEach(f=>{
+    const r = new FileReader();
+    r.onload = ev=>{ photoData.push(ev.target.result); renderThumbs(); };
+    r.readAsDataURL(f);
+  });
+  e.target.value = "";
+});
+function renderThumbs(){
+  $("#thumbs").innerHTML = photoData.map((d,i)=>
+    `<div class="thumb"><img src="${d}"><button class="rm" data-i="${i}">×</button></div>`).join("");
+  $$("#thumbs .rm").forEach(b=>b.addEventListener("click",()=>{
+    photoData.splice(+b.dataset.i,1); renderThumbs();
+  }));
+}
+
+/* ============================================================
+   ハッシュタグ整形
+   ============================================================ */
+function parseHashtags(raw){
+  if(!raw) return [];
+  return raw.split(/[\s,、　]+/).map(s=>s.trim()).filter(Boolean)
+    .map(s=> s.startsWith("#") ? s : "#"+s);
+}
+function channelHashtags(ch){
+  const raw = setting(ch.hashKey, ch.hashDefault);
+  return parseHashtags(raw);
+}
+
+/* ============================================================
+   プロンプト構築（媒体ごと）
+   ============================================================ */
+function buildContextBlock(){
+  const shop = setting("shopInfo","EASY HOUSE合同会社 / 広島県呉市黒瀬周辺 / エアコン取付・残置物撤去・空き家買取");
+  const tone = setting("tone","");
+  const sign = setting("sign","");
+  const L = store.data.learned;
+  let learnedTxt = "";
+  if(L){
+    learnedTxt =
+`【この事業者の過去傾向（学習データ・必ず反映）】
+・よく使う言い回し: ${(L.phrases||[]).slice(0,12).join(" / ") || "（なし）"}
+・特徴的な語彙: ${(L.vocab||[]).slice(0,15).join("、") || "（なし）"}
+・よく使うハッシュタグ: ${(L.hashtags||[]).slice(0,15).join(" ") || "（なし）"}
+（上記の文体・温度感に寄せること）`;
+  }
+  return `【事業者情報】${shop}
+【地域】広島県呉市・黒瀬町周辺（東広島寄り）。地方の生活圏。
+${tone?`【トーン指定】${tone}`:""}
+${sign?`【署名（各投稿の最後に置く）】${sign}`:""}
+${learnedTxt}`;
+}
+
+function buildPrompt(ch, topic, type){
+  const tags = channelHashtags(ch);
+  const ctx = buildContextBlock();
+  return `あなたは地域密着の中小事業者「EASY HOUSE合同会社」のSNS運用担当です。日本語で、${ch.name}向けの投稿キャプションを1本だけ作成してください。
+
+${ctx}
+
+【今回の投稿】
+・媒体: ${ch.name}${ch.handle?`（${ch.handle}）`:""}
+・読者: ${ch.audience}
+・投稿タイプ: ${type}
+・素材/トピック: ${topic}
+
+【${ch.name}の文体ルール】
+${ch.styleRule}
+
+【ハッシュタグ】
+この媒体で使うハッシュタグセット: ${tags.join(" ")}
+${ch.id==="ig"
+  ? "→ 本文の最後に空行を1つ入れてから、これらのハッシュタグをまとめて並べること。トピックに合うものだけ取捨選択してよい。"
+  : "→ ハッシュタグは控えめに。本文末尾に1〜3個だけ自然に添える程度。"}
+
+【厳守ルール】
+・誇大広告・根拠のない断定（最安・絶対など）は避ける。
+・実在の住所や個人が特定できる情報は書かない。
+・出力はキャプション本文のみ。前置き・解説・「以下が〜」等は一切書かない。
+・絵文字や改行は媒体ルールに従う。`;
+}
+
+function buildManualPrompt(topic, type){
+  // APIキー未設定時に、人がClaude等へ貼るためのまとめプロンプト
+  const chs = ACTIVE_CHANNELS.filter(c=>selectedChannels.has(c.id));
+  let out = `【近所SNS下書き依頼】日本語で、以下それぞれの媒体向けに投稿キャプションを別々に作ってください。\n\n${buildContextBlock()}\n\n■トピック: ${topic}\n■投稿タイプ: ${type}\n\n`;
+  chs.forEach(ch=>{
+    out += `── ${ch.name}${ch.handle?`（${ch.handle}）`:""} ──\n読者: ${ch.audience}\n文体: ${ch.styleRule}\nハッシュタグ: ${channelHashtags(ch).join(" ")}\n\n`;
+  });
+  out += "※各媒体ごとに本文だけを出力してください。";
+  return out;
+}
+
+/* ============================================================
+   Anthropic API 呼び出し
+   ============================================================ */
+async function callClaude({prompt, useTrend=false, maxTokens=1024}){
+  const key = setting("apiKey","");
+  if(!key) throw new Error("NO_KEY");
+  const model = setting("model", DEFAULT_MODEL) || DEFAULT_MODEL;
+  const body = {
+    model,
+    max_tokens: maxTokens,
+    messages: [{ role:"user", content: prompt }]
+  };
+  if(useTrend){
+    body.tools = [{ type:"web_search_20250305", name:"web_search", max_uses:3 }];
+  }
+  const res = await fetch("https://api.anthropic.com/v1/messages",{
+    method:"POST",
+    headers:{
+      "content-type":"application/json",
+      "x-api-key":key,
+      "anthropic-version":ANTHROPIC_VERSION,
+      "anthropic-dangerous-direct-browser-access":"true"
+    },
+    body: JSON.stringify(body)
+  });
+  if(!res.ok){
+    let msg = "API error "+res.status;
+    try{ const j = await res.json(); if(j.error&&j.error.message) msg = j.error.message; }catch(e){}
+    throw new Error(msg);
+  }
+  const data = await res.json();
+  // content は text / tool_use / server_tool_use 等が混在しうる → type で振り分け text を結合
+  let text = "";
+  if(Array.isArray(data.content)){
+    for(const blk of data.content){
+      if(blk.type==="text" && blk.text) text += blk.text;
+    }
+  }
+  return text.trim();
+}
+
+/* ============================================================
+   下書き生成
+   ============================================================ */
+$("#genBtn").addEventListener("click", generate);
+async function generate(){
+  const topic = $("#topic").value.trim();
+  if(!topic){ toast("トピックを入力してください"); $("#topic").focus(); return; }
+  const chs = ACTIVE_CHANNELS.filter(c=>selectedChannels.has(c.id));
+  if(!chs.length){ toast("媒体を選んでください"); return; }
+  const type = selectedType;
+  const hasKey = !!setting("apiKey","");
+
+  // APIキー未設定 → フォールバック（プロンプトコピー）
+  if(!hasKey){
+    const p = buildManualPrompt(topic, type);
+    $("#drafts").innerHTML =
+      `<div class="card">
+        <div class="note">APIキーが未設定です。下のボタンで<b>Claude用プロンプト</b>をコピーし、Claude等に貼り付けて清書 → 各媒体に投稿してください（完全無料）。設定タブでAPIキーを入れると自動生成になります。</div>
+        <button class="primary" id="copyPrompt">Claude用プロンプトをコピー</button>
+        <textarea style="margin-top:12px;height:200px;" readonly>${esc(p)}</textarea>
+      </div>`;
+    $("#copyPrompt").addEventListener("click", ()=>copyText(p));
+    return;
+  }
+
+  // API生成
+  const btn = $("#genBtn");
+  btn.disabled = true;
+  $("#drafts").innerHTML = "";
+  $("#genHint").innerHTML = `<span class="spin"></span> 生成中…（${chs.length}媒体）`;
+
+  for(const ch of chs){
+    const holder = document.createElement("div");
+    holder.className = "draft "+ch.id;
+    holder.innerHTML = `<div class="head"><span>${esc(ch.name)}</span>${ch.handle?`<span class="meta">${esc(ch.handle)}</span>`:""}</div>
+      <div class="body"><div class="text"><span class="spin" style="border-top-color:var(--brand);border-color:var(--line);border-top-color:var(--brand);"></span> 生成中…</div></div>`;
+    $("#drafts").appendChild(holder);
+    try{
+      const txt = await callClaude({ prompt: buildPrompt(ch, topic, type), maxTokens: 1024 });
+      renderDraftCard(holder, ch, type, txt);
+      saveHistory(ch.id, type, txt);
+    }catch(err){
+      if(err.message==="NO_KEY"){ btn.disabled=false; $("#genHint").textContent=""; return; }
+      holder.querySelector(".body").innerHTML =
+        `<div class="note">生成に失敗しました：${esc(err.message)}<br>設定タブのAPIキー・モデル名・利用上限をご確認ください。</div>`;
+    }
+  }
+  $("#genHint").textContent = "生成した下書きは履歴に保存しました。";
+  btn.disabled = false;
+}
+
+function renderDraftCard(holder, ch, type, fullText){
+  // IGはハッシュタグを本文末尾にまとめている前提。表示用に分離（末尾連続#行）
+  let body = fullText, tagLine = "";
+  const m = fullText.match(/(\n+)((?:#[^\s#]+[\s　]*)+)\s*$/);
+  if(m){ body = fullText.slice(0, m.index).trim(); tagLine = m[2].trim(); }
+  holder.querySelector(".body").innerHTML =
+    `<div class="text">${esc(body)}</div>
+     ${tagLine?`<div class="tags">${esc(tagLine)}</div>`:""}
+     <div class="acts">
+       <button class="mini copy" data-act="copy">📋 コピー</button>
+       <button class="mini" data-act="copybody">本文のみ</button>
+       <button class="mini" data-act="regen">↻ 再生成</button>
+     </div>`;
+  holder.querySelector('[data-act="copy"]').addEventListener("click",()=>copyText(fullText));
+  holder.querySelector('[data-act="copybody"]').addEventListener("click",()=>copyText(body));
+  holder.querySelector('[data-act="regen"]').addEventListener("click", async ()=>{
+    const topic = $("#topic").value.trim();
+    holder.querySelector(".body").innerHTML = `<div class="text"><span class="spin" style="border-color:var(--line);border-top-color:var(--brand);"></span> 再生成中…</div>`;
+    try{
+      const txt = await callClaude({ prompt: buildPrompt(ch, topic, type), maxTokens:1024 });
+      renderDraftCard(holder, ch, type, txt);
+      saveHistory(ch.id, type, txt);
+    }catch(err){
+      holder.querySelector(".body").innerHTML = `<div class="note">再生成に失敗：${esc(err.message)}</div>`;
+    }
+  });
+}
+
+/* ============================================================
+   履歴
+   ============================================================ */
+function saveHistory(channel, type, text){
+  const tags = (text.match(/#[^\s#]+/g)||[]);
+  store.data.history.unshift({
+    id: Date.now()+"_"+Math.random().toString(36).slice(2,7),
+    date: new Date().toISOString(),
+    channel, type, text, tags, react:null
+  });
+  if(store.data.history.length>500) store.data.history.length=500;
+  store.save();
+}
+function fmtDate(iso){
+  const d = new Date(iso);
+  const p = n=>String(n).padStart(2,"0");
+  return `${d.getFullYear()}/${p(d.getMonth()+1)}/${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+function renderHistory(){
+  const h = store.data.history;
+  if(!h.length){ $("#histList").innerHTML = `<div class="empty"><span class="big">🗒️</span>まだ履歴がありません。<br>作成タブで下書きを生成すると保存されます。</div>`; return; }
+  $("#histList").innerHTML = h.map(item=>{
+    const chName = CHANNELS[item.channel] ? CHANNELS[item.channel].name : item.channel;
+    return `<div class="hist" data-id="${item.id}">
+      <div class="top">
+        <span class="badge ${item.channel}">${esc(chName)}</span>
+        <span class="type">${esc(item.type||"")}</span>
+        <span style="margin-left:auto;">${fmtDate(item.date)}</span>
+      </div>
+      <div class="txt">${esc(item.text)}</div>
+      <div class="react" data-id="${item.id}">
+        <button data-r="good" class="${item.react==='good'?'on':''}">👍 反応◎</button>
+        <button data-r="mid"  class="${item.react==='mid'?'on':''}">😐 普通</button>
+        <button data-r="bad"  class="${item.react==='bad'?'on':''}">👎 いまいち</button>
+      </div>
+      <div class="acts">
+        <button class="mini copy" data-act="copy">📋 コピー</button>
+        <button class="mini" data-act="more">全文表示</button>
+        <button class="mini" data-act="del" style="color:var(--danger);border-color:#eecaca;">削除</button>
+      </div>
+    </div>`;
+  }).join("");
+
+  $$("#histList .hist").forEach(el=>{
+    const id = el.dataset.id;
+    const item = store.data.history.find(x=>x.id===id);
+    el.querySelector('[data-act="copy"]').addEventListener("click",()=>copyText(item.text));
+    el.querySelector('[data-act="more"]').addEventListener("click",()=>{
+      el.querySelector(".txt").classList.toggle("open");
+    });
+    el.querySelector('[data-act="del"]').addEventListener("click",()=>{
+      store.data.history = store.data.history.filter(x=>x.id!==id);
+      store.save(); renderHistory(); renderSummary();
+    });
+    el.querySelectorAll(".react button").forEach(b=>b.addEventListener("click",()=>{
+      item.react = (item.react===b.dataset.r)? null : b.dataset.r;
+      store.save(); renderHistory();
+    }));
+  });
+}
+
+/* ============================================================
+   傾向サマリー
+   ============================================================ */
+function renderSummary(){
+  const h = store.data.history;
+  if(!h.length){ $("#summary").innerHTML = `<div class="empty"><span class="big">📈</span>履歴がたまると傾向が出ます。</div>`; return; }
+
+  // タイプ偏り
+  const typeCount = {};
+  h.forEach(x=> typeCount[x.type]=(typeCount[x.type]||0)+1 );
+  // 媒体偏り
+  const chCount = {};
+  h.forEach(x=> chCount[x.channel]=(chCount[x.channel]||0)+1 );
+  // ハッシュタグ頻度
+  const tagCount = {};
+  h.forEach(x=> (x.tags||[]).forEach(t=> tagCount[t]=(tagCount[t]||0)+1 ));
+  const topTags = Object.entries(tagCount).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  // 反応集計
+  const react = {good:0,mid:0,bad:0};
+  h.forEach(x=>{ if(x.react) react[x.react]++; });
+
+  const total = h.length;
+  const bar = (n)=>`<div class="kv"><div class="barwrap"><div class="bar" style="width:${Math.round(n/total*100)}%"></div></div><span class="small">${n}</span></div>`;
+
+  let html = `<p class="small">総投稿数 <b>${total}</b> 件</p>`;
+
+  html += `<h2 class="sec" style="font-size:13px;margin-top:14px;"><span class="dot"></span>投稿タイプの偏り</h2><table class="stat">`;
+  Object.entries(typeCount).sort((a,b)=>b[1]-a[1]).forEach(([k,v])=>{
+    html += `<tr><td class="k">${esc(k)}</td><td>${bar(v)}</td></tr>`;
+  });
+  html += `</table>`;
+
+  html += `<h2 class="sec" style="font-size:13px;margin-top:14px;"><span class="dot"></span>媒体の偏り</h2><table class="stat">`;
+  Object.entries(chCount).sort((a,b)=>b[1]-a[1]).forEach(([k,v])=>{
+    const nm = CHANNELS[k]?CHANNELS[k].name:k;
+    html += `<tr><td class="k">${esc(nm)}</td><td>${bar(v)}</td></tr>`;
+  });
+  html += `</table>`;
+
+  html += `<h2 class="sec" style="font-size:13px;margin-top:14px;"><span class="dot"></span>ハッシュタグ使用頻度 TOP10</h2>`;
+  if(topTags.length){
+    html += `<table class="stat">`;
+    topTags.forEach(([t,c])=> html += `<tr><td class="k">${esc(t)}</td><td class="v">${c}回</td></tr>`);
+    html += `</table>`;
+  } else html += `<p class="small">ハッシュタグの記録なし</p>`;
+
+  const reactSum = react.good+react.mid+react.bad;
+  html += `<h2 class="sec" style="font-size:13px;margin-top:14px;"><span class="dot"></span>記録した反応</h2>`;
+  if(reactSum) html += `<p class="small">👍 ${react.good} ／ 😐 ${react.mid} ／ 👎 ${react.bad}（記録 ${reactSum}件）</p>`;
+  else html += `<p class="small">履歴カードで反応を記録すると集計されます。</p>`;
+
+  $("#summary").innerHTML = html;
+}
+
+/* ============================================================
+   過去キャプション学習
+   ============================================================ */
+$("#learnBtn").addEventListener("click", ()=>{
+  const raw = $("#learnBox").value.trim();
+  if(!raw){ toast("学習するテキストを貼り付けてください"); return; }
+  const learned = analyzeCaptions(raw);
+  store.data.learned = learned;
+  store.save();
+  $("#learnBox").value = "";
+  renderLearned();
+  toast("学習しました。次回生成から反映されます");
+});
+function analyzeCaptions(raw){
+  // ハッシュタグ
+  const hashtags = {};
+  (raw.match(/#[^\s#　]+/g)||[]).forEach(t=> hashtags[t]=(hashtags[t]||0)+1 );
+  const topHash = Object.entries(hashtags).sort((a,b)=>b[1]-a[1]).map(x=>x[0]).slice(0,20);
+
+  // 文体: ハッシュタグ除去
+  const body = raw.replace(/#[^\s#　]+/g," ");
+
+  // 語彙頻度（2〜8文字の和文・英数トークン）
+  const vocab = {};
+  (body.match(/[一-龠ぁ-んァ-ヶー]{2,8}|[A-Za-z]{3,}/g)||[]).forEach(w=>{
+    if(STOP.has(w)) return;
+    vocab[w]=(vocab[w]||0)+1;
+  });
+  const topVocab = Object.entries(vocab).filter(x=>x[1]>=2).sort((a,b)=>b[1]-a[1]).map(x=>x[0]).slice(0,20);
+
+  // よく使う言い回し（短い行・締め文句）
+  const phrases = {};
+  body.split(/[\n。！!？?]/).map(s=>s.trim()).filter(s=>s.length>=4 && s.length<=22)
+    .forEach(s=> phrases[s]=(phrases[s]||0)+1 );
+  const topPhrases = Object.entries(phrases).filter(x=>x[1]>=2).sort((a,b)=>b[1]-a[1]).map(x=>x[0]).slice(0,12);
+
+  // サンプル数（空行/改行2つ以上で区切り）
+  const sampleCount = raw.split(/\n{2,}/).map(s=>s.trim()).filter(Boolean).length;
+
+  return { phrases:topPhrases, vocab:topVocab, hashtags:topHash, sampleCount, savedAt:new Date().toISOString() };
+}
+const STOP = new Set(["います","ました","します","です","ます","こと","これ","それ","ある","する","いる","なる","ない","ので","から","まで","など","この","その","あの","とても","本当","今日","みなさん","ください","よろしく"]);
+
+function renderLearned(){
+  const L = store.data.learned;
+  if(!L){ $("#learnedView").innerHTML = `<span class="small">まだ学習データはありません。</span>`; return; }
+  $("#learnedView").innerHTML = `
+    <div class="note sec" style="color:#1c4e80;">
+      📚 学習済み（サンプル約${L.sampleCount}件 / ${fmtDate(L.savedAt)}）<br>
+      <b>語彙:</b> ${esc((L.vocab||[]).slice(0,12).join("、")||"—")}<br>
+      <b>言い回し:</b> ${esc((L.phrases||[]).slice(0,6).join(" / ")||"—")}<br>
+      <b>ハッシュタグ:</b> ${esc((L.hashtags||[]).slice(0,12).join(" ")||"—")}
+    </div>
+    <button class="mini" id="clearLearned" style="margin-top:8px;color:var(--danger);border-color:#eecaca;">学習データを消す</button>`;
+  $("#clearLearned").addEventListener("click",()=>{
+    store.data.learned=null; store.save(); renderLearned(); toast("学習データを削除しました");
+  });
+}
+
+/* ============================================================
+   助言
+   ============================================================ */
+const STATIC_TIPS = [
+  ["フック（1行目）","スクロールを止める一言を最初に。『黒瀬で〇〇な話』『え、これ無料？』など具体＋地域名。"],
+  ["構成","①フック → ②具体（作業内容/before-after/エピソード）→ ③人柄・地域の一言 → ④CTA。"],
+  ["CTA（行動喚起）","『DMで相談OK』『お見積り無料』『保存しておくと安心』など、次の一歩を1つだけ明示。"],
+  ["投稿時間帯","近所向けは平日 朝7〜8時 / 昼12時台 / 夜19〜21時。地方は夜の到達が強め。週末は午前。"],
+  ["ハッシュタグ設計","IGは『#黒瀬』など狭い地域 + 業種 + 少し広い『#広島』を10〜15個。FBは1〜3個で十分。"],
+  ["写真","作業の手元・before/after・笑顔の現場が強い。1枚目で内容が分かる構図を。"],
+  ["地域密着の信頼","屋号・エリア・実例を繰り返し出すと『近所の安心な業者』として記憶される。"]
+];
+function renderStaticTips(){
+  $("#staticTips").innerHTML = STATIC_TIPS.map(([t,d])=>
+    `<div class="tip"><b>${esc(t)}</b><span>${esc(d)}</span></div>`).join("");
+}
+
+$("#adviceBtn").addEventListener("click", getAdvice);
+async function getAdvice(){
+  const useTrend = $("#trendToggle").checked;
+  const hasKey = !!setting("apiKey","");
+  const out = $("#adviceOut");
+
+  // 自分の傾向を要約してプロンプトに渡す
+  const h = store.data.history;
+  const typeCount={}, tagCount={};
+  h.forEach(x=>{ typeCount[x.type]=(typeCount[x.type]||0)+1; (x.tags||[]).forEach(t=>tagCount[t]=(tagCount[t]||0)+1); });
+  const topType = Object.entries(typeCount).sort((a,b)=>b[1]-a[1]).map(x=>`${x[0]}(${x[1]})`).slice(0,5).join("、")||"記録なし";
+  const topTag  = Object.entries(tagCount).sort((a,b)=>b[1]-a[1]).map(x=>x[0]).slice(0,10).join(" ")||"記録なし";
+
+  const prompt =
+`あなたは地方の中小事業者向けSNSコンサルです。日本語で簡潔に、実践的な助言をしてください。
+
+【事業者】EASY HOUSE合同会社（広島県呉市・黒瀬周辺。エアコン取付・残置物撤去・空き家買取）
+【媒体】Instagram(@tbsa112) と Facebook。読者は「近所の人・地元の見込み客」。
+【この事業者の投稿傾向】よく使うタイプ: ${topType} ／ よく使うタグ: ${topTag}
+${useTrend ? "【トレンド反映】web_searchで、今の季節（今日時点）・呉/広島・住宅/エアコン/空き家業界の旬の話題を1〜2件調べ、投稿アイデアに織り込むこと。情報源があれば末尾に簡単に示す。" : "【トレンド反映なし】一般的・定番の助言でよい。"}
+
+次の形式で出力:
+1) 今すぐ使える投稿アイデア 3つ（各：フック1行＋ねらい）
+2) この事業者への『次の一手』（傾向を踏まえ、偏りの是正や伸ばし方を2つ）
+3) ハッシュタグ/投稿時間の具体アドバイス（1〜2行）
+※前置き不要。見出しと箇条書きで読みやすく。`;
+
+  if(!hasKey){
+    out.innerHTML = `<div class="card">
+      <div class="note">APIキー未設定のため、下のプロンプトをコピーしてClaude等に貼ると助言が得られます。${useTrend?"（トレンド反映はAPIのweb_searchが必要なため、手動では最新情報なしの助言になります）":""}</div>
+      <button class="primary" id="copyAdvice">助言プロンプトをコピー</button>
+      <textarea readonly style="margin-top:12px;height:200px;">${esc(prompt)}</textarea></div>`;
+    $("#copyAdvice").addEventListener("click",()=>copyText(prompt));
+    return;
+  }
+
+  $("#adviceBtn").disabled = true;
+  $("#adviceHint").innerHTML = `<span class="spin"></span> 考え中…${useTrend?"（最新情報を検索中）":""}`;
+  out.innerHTML = "";
+  try{
+    const txt = await callClaude({ prompt, useTrend, maxTokens: 1500 });
+    out.innerHTML = `<div class="card"><h2 class="sec"><span class="dot"></span>助言${useTrend?"（トレンド反映）":""}</h2>
+      <div class="draft" style="border:0;margin:0;"><div class="body" style="padding:0;"><div class="text">${esc(txt)}</div>
+      <div class="acts"><button class="mini copy" id="copyAdviceOut">📋 コピー</button></div></div></div></div>`;
+    $("#copyAdviceOut").addEventListener("click",()=>copyText(txt));
+  }catch(err){
+    out.innerHTML = `<div class="card"><div class="note">取得失敗：${esc(err.message)}</div></div>`;
+  }
+  $("#adviceHint").textContent = "";
+  $("#adviceBtn").disabled = false;
+}
+
+/* ============================================================
+   設定 画面
+   ============================================================ */
+function loadSettingsUI(){
+  $("#apiKey").value   = setting("apiKey","");
+  $("#hashIg").value   = setting("hashIg", CHANNELS.ig.hashDefault);
+  $("#hashFb").value   = setting("hashFb", CHANNELS.fb.hashDefault);
+  $("#shopInfo").value = setting("shopInfo","");
+  $("#tone").value     = setting("tone","");
+  $("#sign").value     = setting("sign","");
+  $("#typesEdit").value= setting("types", DEFAULT_TYPES.join(","));
+  $("#modelName").value= setting("model", DEFAULT_MODEL);
+  updateKeyState();
+}
+function updateKeyState(){
+  const k = setting("apiKey","");
+  $("#keyState").textContent = k ? "✅ キー保存済み（自動生成が有効）" : "未設定（手動プロンプト・モードで動作）";
+}
+// 入力の自動保存（キー以外）
+function bindAutoSave(sel, key){
+  $(sel).addEventListener("input", ()=>{ S()[key]=$(sel).value; store.save(); });
+}
+bindAutoSave("#hashIg","hashIg");
+bindAutoSave("#hashFb","hashFb");
+bindAutoSave("#shopInfo","shopInfo");
+bindAutoSave("#tone","tone");
+bindAutoSave("#sign","sign");
+bindAutoSave("#modelName","model");
+
+$("#saveKey").addEventListener("click", ()=>{
+  S().apiKey = $("#apiKey").value.trim();
+  store.save(); updateKeyState(); $("#genHint").textContent=""; toast("APIキーを保存しました");
+});
+$("#showKey").addEventListener("click", ()=>{
+  const el=$("#apiKey"); el.type = el.type==="password" ? "text" : "password";
+});
+$("#clearKey").addEventListener("click", ()=>{
+  S().apiKey=""; store.save(); $("#apiKey").value=""; updateKeyState(); toast("APIキーを削除しました");
+});
+$("#saveTypes").addEventListener("click", ()=>{
+  const v = $("#typesEdit").value.trim();
+  S().types = v || DEFAULT_TYPES.join(",");
+  store.save(); renderTypeChips(); toast("投稿タイプを保存しました");
+});
+$("#resetAll").addEventListener("click", ()=>{
+  if(confirm("すべての履歴・設定・学習メモ・APIキーを削除します。元に戻せません。よろしいですか？")){
+    localStorage.removeItem(LS);
+    store.data = load();
+    photoData=[]; selectedType=null;
+    selectedChannels = new Set(ACTIVE_CHANNELS.map(c=>c.id));
+    loadSettingsUI(); renderTypeChips(); renderTargets(); renderThumbs();
+    renderHistory(); renderSummary(); renderLearned();
+    $("#drafts").innerHTML=""; $("#topic").value="";
+    toast("すべて消去しました");
+  }
+});
+
+/* ============================================================
+   初期化
+   ============================================================ */
+renderTypeChips();
+renderTargets();
+renderStaticTips();
+loadSettingsUI();
+renderLearned();
+</script>
+</body>
+</html>
