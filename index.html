@@ -100,14 +100,17 @@
   /* ===== targets toggle ===== */
   .targets{display:flex;gap:10px;margin-top:6px;}
   .tg{
-    flex:1;border:1.5px solid var(--line);border-radius:12px;padding:11px;
+    flex:1;min-width:0;border:1.5px solid var(--line);border-radius:12px;padding:9px 6px;
     text-align:center;font-weight:700;font-size:14px;cursor:pointer;background:#fff;color:var(--sub);
-    display:flex;align-items:center;justify-content:center;gap:7px;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
   }
-  .tg .b{width:10px;height:10px;border-radius:50%;background:var(--line);}
+  .tg .tgmain{display:flex;align-items:center;gap:6px;}
+  .tg .tghandle{font-size:10px;font-weight:600;opacity:.85;line-height:1;}
+  .tg .b{width:9px;height:9px;border-radius:50%;background:var(--line);flex:none;}
   .tg.on{color:#fff;}
   .tg.ig.on{background:var(--ig);border-color:var(--ig);}
   .tg.fb.on{background:var(--fb);border-color:var(--fb);}
+  .tg.x.on{background:var(--x);border-color:var(--x);}
   .tg.on .b{background:#fff;}
 
   /* ===== buttons ===== */
@@ -300,6 +303,8 @@
         <textarea id="hashIg" placeholder="#黒瀬 #呉 #広島 #エアコン取付 #空き家"></textarea>
         <p class="hint" style="margin-top:12px;">Facebook用（控えめ。1〜3個推奨）。</p>
         <textarea id="hashFb" placeholder="#呉市 #黒瀬"></textarea>
+        <p class="hint" style="margin-top:12px;">X用（1〜2個に絞る）。</p>
+        <textarea id="hashX" placeholder="#呉市 #空き家 #エアコン取付"></textarea>
       </div>
 
       <div class="card">
@@ -361,15 +366,13 @@ const CHANNELS = {
     audience:"近所のコミュニティ・地域の知人（Facebookを見る層）",
     styleRule:"やや説明的で人柄と地域密着が伝わる文体。落ち着いた丁寧語。ハッシュタグは控えめ（1〜3個）。一言あいさつや連絡先を入れやすく、信頼感重視。",
     hashKey:"hashFb", hashDefault:"#呉市 #黒瀬"
-  }
-  /* --- 将来追加（設計のみ・今は無効） ---
+  },
   x: {
-    id:"x", name:"X", handle:"", badge:"x", enabledByDefault:false,
-    audience:"大家・不動産オーナー（物件リード獲得）",
-    styleRule:"簡潔。1〜2文＋要点。物件/空き家オーナー向けの価値提案。ハッシュタグ最小限。",
-    hashKey:"hashX", hashDefault:"#空き家 #不動産 #呉市"
+    id:"x", name:"X", handle:"", badge:"x", enabledByDefault:true,
+    audience:"広い一般ユーザー＋空き家・不動産オーナー（物件リード獲得）",
+    styleRule:"140字前後で簡潔に。最初の一文をフックにして要点を1〜2文で。絵文字は控えめ。ハッシュタグは1〜2個に絞る。問い合わせやリンクの導線を一言添えてもよい。",
+    hashKey:"hashX", hashDefault:"#呉市 #空き家 #エアコン取付"
   }
-  */
 };
 const ACTIVE_CHANNELS = Object.values(CHANNELS).filter(c => c.enabledByDefault);
 
@@ -460,7 +463,8 @@ function renderTargets(){
   $("#targets").innerHTML = ACTIVE_CHANNELS.map(c=>{
     const on = selectedChannels.has(c.id);
     return `<div class="tg ${c.id} ${on?'on':''}" data-c="${c.id}">
-        <span class="b"></span>${esc(c.name)}${c.handle?`<span style="font-size:11px;opacity:.85;">${esc(c.handle)}</span>`:""}
+        <span class="tgmain"><span class="b"></span>${esc(c.name)}</span>
+        ${c.handle?`<span class="tghandle">${esc(c.handle)}</span>`:""}
       </div>`;
   }).join("");
   $$("#targets .tg").forEach(el=>el.addEventListener("click",()=>{
@@ -612,7 +616,14 @@ async function callClaude({prompt, useTrend=false, maxTokens=1024}){
 $("#genBtn").addEventListener("click", generate);
 async function generate(){
   const topic = $("#topic").value.trim();
-  if(!topic){ toast("トピックを入力してください"); $("#topic").focus(); return; }
+  if(!topic){
+    toast("トピックを入力してください");
+    const t = $("#topic"); t.focus();
+    t.scrollIntoView({behavior:"smooth",block:"center"});
+    t.style.borderColor = "var(--danger)";
+    setTimeout(()=>{ t.style.borderColor=""; }, 1500);
+    return;
+  }
   const chs = ACTIVE_CHANNELS.filter(c=>selectedChannels.has(c.id));
   if(!chs.length){ toast("媒体を選んでください"); return; }
   const type = selectedType;
@@ -623,11 +634,13 @@ async function generate(){
     const p = buildManualPrompt(topic, type);
     $("#drafts").innerHTML =
       `<div class="card">
-        <div class="note">APIキーが未設定です。下のボタンで<b>Claude用プロンプト</b>をコピーし、Claude等に貼り付けて清書 → 各媒体に投稿してください（完全無料）。設定タブでAPIキーを入れると自動生成になります。</div>
-        <button class="primary" id="copyPrompt">Claude用プロンプトをコピー</button>
+        <h2 class="sec"><span class="dot"></span>下書きの作り方（APIキー未設定）</h2>
+        <div class="note">いまは<b>自動生成OFF</b>です。自動で下書きを作るには、⚙️設定タブで<b>Anthropic APIキー</b>を入れてください。<br>キー無しでも、下のボタンで<b>Claude用プロンプト</b>をコピー → Claudeアプリ等に貼れば下書きが作れます（無料）。</div>
+        <button class="primary" id="copyPrompt">📋 Claude用プロンプトをコピー</button>
         <textarea style="margin-top:12px;height:200px;" readonly>${esc(p)}</textarea>
       </div>`;
     $("#copyPrompt").addEventListener("click", ()=>copyText(p));
+    $("#drafts").scrollIntoView({behavior:"smooth",block:"start"});
     return;
   }
 
@@ -636,6 +649,7 @@ async function generate(){
   btn.disabled = true;
   $("#drafts").innerHTML = "";
   $("#genHint").innerHTML = `<span class="spin"></span> 生成中…（${chs.length}媒体）`;
+  $("#drafts").scrollIntoView({behavior:"smooth",block:"start"});
 
   for(const ch of chs){
     const holder = document.createElement("div");
@@ -935,6 +949,7 @@ function loadSettingsUI(){
   $("#apiKey").value   = setting("apiKey","");
   $("#hashIg").value   = setting("hashIg", CHANNELS.ig.hashDefault);
   $("#hashFb").value   = setting("hashFb", CHANNELS.fb.hashDefault);
+  $("#hashX").value    = setting("hashX", CHANNELS.x.hashDefault);
   $("#shopInfo").value = setting("shopInfo","");
   $("#tone").value     = setting("tone","");
   $("#sign").value     = setting("sign","");
@@ -952,6 +967,7 @@ function bindAutoSave(sel, key){
 }
 bindAutoSave("#hashIg","hashIg");
 bindAutoSave("#hashFb","hashFb");
+bindAutoSave("#hashX","hashX");
 bindAutoSave("#shopInfo","shopInfo");
 bindAutoSave("#tone","tone");
 bindAutoSave("#sign","sign");
