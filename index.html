@@ -155,6 +155,11 @@
   .igsec:last-of-type{margin-bottom:0;}
   .igh{font-size:12px;font-weight:800;color:var(--ig);margin-bottom:6px;display:flex;align-items:center;gap:5px;}
   .igsec.cap .igh{color:var(--brand-d);}
+  .revise{margin-top:12px;border-top:1px dashed var(--line);padding-top:11px;}
+  .revise .revinput{width:100%;}
+  .revrow{display:flex;align-items:center;gap:12px;margin-top:8px;flex-wrap:wrap;}
+  .revrem{font-size:12px;color:var(--sub);display:flex;align-items:center;gap:5px;}
+  .revbtn{border-color:var(--brand)!important;color:var(--brand)!important;font-weight:700;}
 
   /* ===== learn blocks (per account) ===== */
   .learnblk{border:1px solid var(--line);border-radius:12px;padding:12px;margin-top:12px;}
@@ -312,6 +317,21 @@
       </div>
 
       <div class="card">
+        <h2 class="sec"><span class="dot"></span>ハッシュタグ設定</h2>
+        <div class="switch">
+          <div><b style="font-size:14px;">ハッシュタグを自動で付ける</b><p class="hint" style="margin-top:2px;">OFFにすると、生成時にハッシュタグを付けません。</p></div>
+          <label class="toggle"><input type="checkbox" id="autoHash"><span class="sl"></span></label>
+        </div>
+        <div id="hashCounts" style="margin-top:6px;"></div>
+      </div>
+
+      <div class="card">
+        <h2 class="sec"><span class="dot"></span>覚えた要望（媒体別）</h2>
+        <p class="hint">「今後もずっとこうする」で覚えた指示の一覧。これらは毎回の生成で必ず反映されます。不要なものは削除できます。</p>
+        <div id="prefsView"></div>
+      </div>
+
+      <div class="card">
         <h2 class="sec"><span class="dot"></span>投稿タイプの編集</h2>
         <p class="hint">カンマ区切り。作成画面の選択肢になります。</p>
         <input type="text" id="typesEdit" placeholder="施工事例,お知らせ,日常,キャンペーン,募集">
@@ -325,11 +345,25 @@
       </div>
 
       <div class="card">
+        <h2 class="sec"><span class="dot"></span>バックアップ / 復元</h2>
+        <div class="note sec" style="margin-bottom:10px;">
+          学習・覚えた要望・履歴・設定・APIキーは<b>この端末に保存</b>され、アプリを閉じても消えません。<br>
+          ただしiPhoneは<b>長期間使わないと自動で消える</b>ことがあります。大事なデータは<b>バックアップを書き出して保管</b>しておくと安心です（機種変更時の引っ越しにも使えます）。
+        </div>
+        <div class="row">
+          <button class="ghost" id="exportData">📤 バックアップを書き出す</button>
+          <button class="ghost" id="importBtn">📥 バックアップを読み込む</button>
+        </div>
+        <input type="file" id="importFile" accept="application/json" style="display:none;">
+        <p class="hint">※書き出したファイルにはAPIキーも含まれます。人に渡さないでください。</p>
+      </div>
+
+      <div class="card">
         <h2 class="sec"><span class="dot"></span>データ管理</h2>
         <p class="hint">すべての履歴・設定・学習メモ・APIキーを端末から削除します。元に戻せません。</p>
         <button class="danger" id="resetAll">すべてリセット（全消去）</button>
       </div>
-      <p class="small" style="text-align:center;">SNS-ASSIST v1.1 ｜ Instagram / Facebook / X</p>
+      <p class="small" style="text-align:center;">SNS-ASSIST v1.2 ｜ Instagram / Facebook / X</p>
     </section>
   </main>
 
@@ -410,11 +444,14 @@ function load(){
   d.settings  = d.settings  || {};
   // learned は媒体別: { ig:{...}, fb:{...}, x:{...} }
   if(!d.learned || d.learned.phrases){ d.learned = {}; } // 旧フラット形式は移行（破棄）
+  // prefs は媒体別の「ずっと覚える要望」リスト: { ig:[...], fb:[...], x:[...] }
+  d.prefs     = d.prefs     || {};
   return d;
 }
 const S = () => store.data.settings;
 function setting(k, def){ const v = S()[k]; return (v===undefined||v===null) ? def : v; }
 function learnedFor(chId){ return (store.data.learned && store.data.learned[chId]) || null; }
+function prefsFor(chId){ return (store.data.prefs && store.data.prefs[chId]) || []; }
 
 /* ============================================================
    UI helpers
@@ -542,13 +579,30 @@ function buildContextBlock(ch){
   } else {
     learnedTxt = "";
   }
+  // 「ずっと覚える要望」（ユーザー指定の好み）
+  const prefs = ch ? prefsFor(ch.id) : [];
+  let prefTxt = "";
+  if(prefs.length){
+    prefTxt = `\n【このアカウントで毎回必ず守るルール（ユーザー指定・最優先）】\n` +
+      prefs.map(p=>"・"+p).join("\n");
+  }
   return `【事業者】${BIZ}
 【地域】広島県呉市・黒瀬町周辺（東広島寄り）。地方の生活圏。
-${learnedTxt}`;
+${learnedTxt}${prefTxt}`;
+}
+
+// ハッシュタグの指示文（自動付与ON/OFF・個数を反映）
+function hashtagInstruction(ch){
+  if(!setting("autoHash", true)){
+    return "【ハッシュタグ】\n今回はハッシュタグを付けないでください。" +
+      (ch.reel ? "【ハッシュタグ】セクションも省略すること。" : "");
+  }
+  const tags = channelHashtags(ch);
+  const n = setting("hashCount_"+ch.id, ch.id==="ig"?12:(ch.id==="fb"?2:2));
+  return `【参考ハッシュタグ（この雰囲気から取捨選択してよい）】\n${tags.join(" ")}\n→ ハッシュタグは${n}個前後を目安にする。`;
 }
 
 function buildPrompt(ch, topic, type){
-  const tags = channelHashtags(ch);
   const ctx = buildContextBlock(ch);
   return `あなたは「EASY HOUSE合同会社」の${ch.name}運用担当です。日本語で、${ch.name}の投稿を1本作成してください。
 
@@ -566,13 +620,35 @@ ${ch.styleRule}
 【出力フォーマット（厳守）】
 ${ch.outputSpec}
 
-【参考ハッシュタグ（この雰囲気から取捨選択してよい）】
-${tags.join(" ")}
+${hashtagInstruction(ch)}
 
 【共通の厳守ルール】
 ・誇大広告・根拠のない断定（最安・絶対など）は避ける。
 ・実在の住所や個人が特定できる情報は書かない。
 ・指定フォーマット以外の前置き・解説（「以下が〜」等）は一切書かない。`;
+}
+
+// 修正依頼プロンプト（前回の下書き＋ユーザーの要望で作り直す）
+function buildRevisePrompt(ch, topic, type, prevText, instruction){
+  return `あなたは「EASY HOUSE合同会社」の${ch.name}運用担当です。日本語で、下の下書きをユーザーの要望どおりに直して、完成版を1本だけ出力してください。
+
+${buildContextBlock(ch)}
+
+【元のトピック】${topic}
+【投稿タイプ】${type}
+
+【前回の下書き】
+${prevText}
+
+【ユーザーの修正要望（最優先で反映）】
+${instruction}
+
+【出力フォーマット（厳守）】
+${ch.outputSpec}
+
+${hashtagInstruction(ch)}
+
+【厳守】指定フォーマット以外の前置き・解説は書かない。修正後の本文だけを出力する。`;
 }
 
 function buildManualPrompt(topic, type){
@@ -581,9 +657,11 @@ function buildManualPrompt(topic, type){
   let out = `【SNS下書き依頼】日本語で、以下それぞれの媒体向けに投稿を別々に作ってください。\n\n【事業者】${BIZ}\n【地域】広島県呉市・黒瀬町周辺\n\n■トピック: ${topic}\n■投稿タイプ: ${type}\n\n`;
   chs.forEach(ch=>{
     const L = learnedFor(ch.id);
+    const prefs = prefsFor(ch.id);
     out += `── ${ch.name}${ch.handle?`（${ch.handle}）`:""} ──\n読者: ${ch.audience}\n文体: ${ch.styleRule}\n`;
     if(L) out += `このアカウントの傾向: 語彙=${(L.vocab||[]).slice(0,10).join("、")} / 言い回し=${(L.phrases||[]).slice(0,5).join(" / ")}\n`;
-    out += `出力形式:\n${ch.outputSpec}\n参考ハッシュタグ: ${channelHashtags(ch).join(" ")}\n\n`;
+    if(prefs.length) out += `毎回守るルール: ${prefs.join(" / ")}\n`;
+    out += `出力形式:\n${ch.outputSpec}\n${hashtagInstruction(ch)}\n\n`;
   });
   return out;
 }
@@ -714,6 +792,40 @@ function bindRegen(holder, ch, type){
     }
   });
 }
+// 再生成ボタン＋「こう直して」修正欄をカードに付ける
+function finishCard(holder, ch, type, fullText){
+  bindRegen(holder, ch, type);
+  const acts = holder.querySelector(".acts");
+  const rev = document.createElement("div");
+  rev.className = "revise";
+  rev.innerHTML =
+    `<input type="text" class="revinput" placeholder="例：もっと短く／絵文字を減らして／方言を少し／値段は書かない">
+     <div class="revrow">
+       <button class="mini revbtn">✏️ この要望で直す</button>
+       <label class="revrem"><input type="checkbox" class="revcheck"> 今後もずっとこうする</label>
+     </div>`;
+  acts.insertAdjacentElement("afterend", rev);
+  const input = rev.querySelector(".revinput");
+  rev.querySelector(".revbtn").addEventListener("click", async ()=>{
+    const instruction = input.value.trim();
+    if(!instruction){ toast("どう直すか入力してください"); input.focus(); return; }
+    const remember = rev.querySelector(".revcheck").checked;
+    if(remember){
+      store.data.prefs[ch.id] = [...prefsFor(ch.id), instruction];
+      store.save();
+    }
+    const topic = $("#topic").value.trim();
+    holder.querySelector(".body").innerHTML = `<div class="text"><span class="spin" style="border-color:var(--line);border-top-color:var(--brand);"></span> 修正中…</div>`;
+    try{
+      const txt = await callClaude({ prompt: buildRevisePrompt(ch, topic, type, fullText, instruction), maxTokens:1200 });
+      renderDraftCard(holder, ch, type, txt);
+      saveHistory(ch.id, type, txt);
+      toast(remember ? "修正し、今後も反映するよう覚えました" : "修正しました");
+    }catch(err){
+      holder.querySelector(".body").innerHTML = `<div class="note">修正に失敗：${esc(err.message)}</div>`;
+    }
+  });
+}
 
 function renderDraftCard(holder, ch, type, fullText){
   const body = holder.querySelector(".body");
@@ -740,7 +852,7 @@ function renderDraftCard(holder, ch, type, fullText){
       holder.querySelector('[data-act="copytelop"]').addEventListener("click",()=>copyText(telop));
       holder.querySelector('[data-act="copycap"]').addEventListener("click",()=>copyText(capFull));
       holder.querySelector('[data-act="copyall"]').addEventListener("click",()=>copyText(allText));
-      bindRegen(holder, ch, type);
+      finishCard(holder, ch, type, fullText);
       return;
     }
   }
@@ -759,7 +871,7 @@ function renderDraftCard(holder, ch, type, fullText){
      </div>`;
   holder.querySelector('[data-act="copy"]').addEventListener("click",()=>copyText(fullText));
   holder.querySelector('[data-act="copybody"]').addEventListener("click",()=>copyText(text));
-  bindRegen(holder, ch, type);
+  finishCard(holder, ch, type, fullText);
 }
 
 /* ============================================================
@@ -958,6 +1070,80 @@ function bindClearLearn(wrap){
   }));
 }
 
+/* ===== ハッシュタグ個数（媒体別）===== */
+function renderHashCounts(){
+  const wrap = $("#hashCounts");
+  if(!wrap) return;
+  const on = setting("autoHash", true);
+  wrap.style.display = on ? "block" : "none";
+  wrap.innerHTML = ACTIVE_CHANNELS.map(c=>{
+    const def = c.id==="ig"?12:2;
+    const v = setting("hashCount_"+c.id, def);
+    return `<div class="kv" style="justify-content:space-between;margin-top:6px;">
+        <span><span class="badge ${c.id}" style="font-size:10px;">${esc(c.name)}</span> ハッシュタグの目安</span>
+        <input type="number" min="0" max="30" class="hashnum" data-c="${c.id}" value="${v}" style="width:72px;text-align:center;padding:8px;">
+      </div>`;
+  }).join("");
+  wrap.querySelectorAll(".hashnum").forEach(inp=>inp.addEventListener("input",()=>{
+    S()["hashCount_"+inp.dataset.c] = Math.max(0, Math.min(30, +inp.value||0));
+    store.save();
+  }));
+}
+
+/* ===== 覚えた要望（媒体別）===== */
+function renderPrefs(){
+  const wrap = $("#prefsView");
+  if(!wrap) return;
+  let any = false;
+  wrap.innerHTML = ACTIVE_CHANNELS.map(c=>{
+    const list = prefsFor(c.id);
+    if(!list.length) return "";
+    any = true;
+    return `<div style="margin-bottom:12px;">
+        <div class="learnhead"><span class="badge ${c.id}">${esc(c.name)}</span></div>
+        ${list.map((p,i)=>`<div class="kv" style="justify-content:space-between;border:1px solid var(--line);border-radius:9px;padding:8px 10px;margin-top:6px;">
+            <span style="font-size:13px;flex:1;">${esc(p)}</span>
+            <button class="mini" data-act="delpref" data-c="${c.id}" data-i="${i}" style="color:var(--danger);border-color:#eecaca;">削除</button>
+          </div>`).join("")}
+      </div>`;
+  }).join("");
+  if(!any) wrap.innerHTML = `<span class="small">まだありません。下書きの「今後もずっとこうする」にチェックして修正すると、ここに溜まります。</span>`;
+  wrap.querySelectorAll('[data-act="delpref"]').forEach(b=>b.addEventListener("click",()=>{
+    const id = b.dataset.c, i = +b.dataset.i;
+    store.data.prefs[id].splice(i,1);
+    if(!store.data.prefs[id].length) delete store.data.prefs[id];
+    store.save(); renderPrefs(); toast("削除しました");
+  }));
+}
+
+/* ===== バックアップ / 復元 ===== */
+function exportData(){
+  const blob = new Blob([JSON.stringify(store.data, null, 2)], {type:"application/json"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  const d = new Date(), p = n=>String(n).padStart(2,"0");
+  a.href = url;
+  a.download = `sns-assist-backup_${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}.json`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  toast("バックアップを書き出しました");
+}
+function importData(file){
+  const r = new FileReader();
+  r.onload = e=>{
+    try{
+      const d = JSON.parse(e.target.result);
+      if(typeof d!=="object" || d===null) throw new Error("形式が不正です");
+      localStorage.setItem(LS, JSON.stringify(d));
+      store.data = load();
+      loadSettingsUI(); renderTypeChips(); renderTargets();
+      renderHistory(); renderSummary(); renderLearnAccounts();
+      toast("バックアップを復元しました");
+    }catch(err){ alert("読み込みに失敗しました：" + err.message); }
+  };
+  r.readAsText(file);
+}
+
 /* ============================================================
    助言
    ============================================================ */
@@ -1034,6 +1220,9 @@ function loadSettingsUI(){
   $("#apiKey").value   = setting("apiKey","");
   $("#typesEdit").value= setting("types", DEFAULT_TYPES.join(","));
   $("#modelName").value= setting("model", DEFAULT_MODEL);
+  $("#autoHash").checked = setting("autoHash", true);
+  renderHashCounts();
+  renderPrefs();
   updateKeyState();
 }
 function updateKeyState(){
@@ -1045,6 +1234,18 @@ function bindAutoSave(sel, key){
   $(sel).addEventListener("input", ()=>{ S()[key]=$(sel).value; store.save(); });
 }
 bindAutoSave("#modelName","model");
+
+$("#autoHash").addEventListener("change", ()=>{
+  S().autoHash = $("#autoHash").checked; store.save(); renderHashCounts();
+  toast($("#autoHash").checked ? "ハッシュタグ自動付与：ON" : "ハッシュタグ自動付与：OFF");
+});
+$("#exportData").addEventListener("click", exportData);
+$("#importBtn").addEventListener("click", ()=> $("#importFile").click());
+$("#importFile").addEventListener("change", e=>{
+  const f = e.target.files && e.target.files[0];
+  if(f) importData(f);
+  e.target.value = "";
+});
 
 $("#saveKey").addEventListener("click", ()=>{
   S().apiKey = $("#apiKey").value.trim();
